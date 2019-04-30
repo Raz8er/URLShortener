@@ -16,6 +16,10 @@ Run the project by executing:
 
 java -jar target/urlshortener-0.0.1-SNAPSHOT.jar
 
+In case of need for building jar file from scratch, execute the following command:
+
+./mvnw clean package
+
 ## Consuming the service
 
 To consume the service, follow the instructions on the link below:
