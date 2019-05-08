@@ -1,10 +1,10 @@
 com\infobip\web\urlshortener\repositories\WebsiteRepository.class
-com\infobip\web\urlshortener\utilities\ActiveUserUtility.class
 com\infobip\web\urlshortener\controllers\AdminController.class
 com\infobip\web\urlshortener\domain\Website.class
 com\infobip\web\urlshortener\repositories\UserRepository.class
 com\infobip\web\urlshortener\services\UserService.class
 com\infobip\web\urlshortener\controllers\UserController.class
+com\infobip\web\urlshortener\utilities\CheckUrlUtility.class
 com\infobip\web\urlshortener\utilities\RandomNumberUtility.class
 com\infobip\web\urlshortener\error\ErrorInfo.class
 com\infobip\web\urlshortener\controllers\PublicController.class

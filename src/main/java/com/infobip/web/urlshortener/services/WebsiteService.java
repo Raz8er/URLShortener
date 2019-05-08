@@ -40,16 +40,12 @@ public class WebsiteService {
         if (website.getRedirectType() == null) {
             website.setRedirectType(302);
         }
-        String shortenedUrl = "http://short.com/" + RandomStringUtility.randomString(RandomNumberUtility.getRandomInteger(6, 9));
+        String shortenedUrl = "http://short.com/" + RandomStringUtility.randomString(RandomNumberUtility.getRandomInteger(5, 11));
         website.setShortUrl(shortenedUrl);
-        if (website.getCount() == null) {
-            website.setCount(0);
-        } else {
-            website.setCount(website.getCount() + 1);
-        }
+        website.setCount(0);
         website.setAccount(currentActiveUsername);
         websiteRepository.save(website);
-        return websiteRepository.findWebsiteByShortUrl(website.getShortUrl());
+        return website;
     }
 
     public String getWebsiteUrl(String shortUrl) {
