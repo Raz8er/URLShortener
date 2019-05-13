@@ -40,7 +40,7 @@ public class WebsiteService {
         if (website.getRedirectType() == null) {
             website.setRedirectType(302);
         }
-        String shortenedUrl = "http://short.com/" + RandomStringUtility.randomString(RandomNumberUtility.getRandomInteger(5, 11));
+        String shortenedUrl = "http://localhost:8080/" + RandomStringUtility.randomString(RandomNumberUtility.getRandomInteger(5, 11));
         website.setShortUrl(shortenedUrl);
         website.setCount(0);
         website.setAccount(currentActiveUsername);
