@@ -20,7 +20,7 @@ public class PublicController {
         if (shortUrl == null || shortUrl.equals("")) {
             throw new Exception("Url is not provided or it is empty!");
         }
-        shortUrl = "http://short.com/" + shortUrl;
+        shortUrl = "http://localhost:8080/" + shortUrl;
         websiteService.updateWebsiteCount(shortUrl);
         String redirectUrl = websiteService.getWebsiteUrl(shortUrl);
         Integer status = websiteService.getWebsiteRedirectType(shortUrl);
