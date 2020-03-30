@@ -1,67 +1,89 @@
 package com.infobip.web.urlshortener.services;
 
-import com.infobip.web.urlshortener.domain.Website;
+import com.infobip.web.urlshortener.domain.dto.RegisteredWebsite;
+import com.infobip.web.urlshortener.domain.dto.Website;
+import com.infobip.web.urlshortener.domain.dto.WebsiteStatistics;
+import com.infobip.web.urlshortener.domain.entity.WebsiteEntity;
+import com.infobip.web.urlshortener.exception.InvalidUrlException;
+import com.infobip.web.urlshortener.exception.UrlAlreadyAssignedException;
 import com.infobip.web.urlshortener.exception.WebsiteNotFoundException;
+import com.infobip.web.urlshortener.mapping.WebsiteMapper;
 import com.infobip.web.urlshortener.repositories.WebsiteRepository;
-import com.infobip.web.urlshortener.utilities.RandomNumberUtility;
-import com.infobip.web.urlshortener.utilities.RandomStringUtility;
+import com.infobip.web.urlshortener.utilities.CheckUrlUtils;
+import com.infobip.web.urlshortener.utilities.EnvUtil;
+import com.infobip.web.urlshortener.utilities.RandomNumberUtils;
+import com.infobip.web.urlshortener.utilities.RandomStringUtils;
+import lombok.AllArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import org.springframework.util.Assert;
 
-import java.util.HashMap;
+import javax.servlet.http.HttpServletResponse;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 
 @Service
+@AllArgsConstructor
 public class WebsiteService {
-
     private final WebsiteRepository websiteRepository;
+    private final WebsiteMapper websiteMapper;
+    private final EnvUtil envUtil;
 
-    public WebsiteService(WebsiteRepository websiteRepository) {
-        this.websiteRepository = websiteRepository;
+    public RegisteredWebsite registerUrl(Website website, String accountId) {
+        if (!CheckUrlUtils.validateUrl(website.getUrl())) {
+            throw new InvalidUrlException(String.format("Url '%s' is not valid", website.getUrl()));
+        }
+
+        String existingUrl = websiteRepository.findUrlByAccountId(accountId);
+        if (Objects.nonNull(existingUrl) && existingUrl.equals(website.getUrl())) {
+            throw new UrlAlreadyAssignedException(String.format("Url '%s' already assigned to this user", existingUrl));
+        }
+
+        WebsiteEntity entity = this.websiteMapper.toEntity(website);
+        String randomString = RandomStringUtils.randomString(RandomNumberUtils.getRandomInteger(5, 11));
+        entity.setShortUrl(randomString);
+        entity.setAccountId(accountId);
+        WebsiteEntity savedEntity = this.websiteRepository.save(entity);
+
+        return new RegisteredWebsite(envUtil.getServerUrlPrefix() + savedEntity.getShortUrl());
     }
 
-    public Map<String, Integer> getWebsiteStatistics(String accountId) {
-        List<Website> websites = websiteRepository.findByAccount(accountId);
+    public WebsiteStatistics getWebsiteStatistics(String accountId, Authentication authentication) {
+        WebsiteStatistics websiteStatistics = new WebsiteStatistics();
+
+        validateRequest(accountId, authentication);
+
+        List<WebsiteEntity> websites = websiteRepository.findByAccountId(accountId);
         if (websites.isEmpty()) {
-            throw new WebsiteNotFoundException("No websites found for user id - " + accountId);
+            throw new WebsiteNotFoundException(String.format("No websites found for user id '%s'", accountId));
         }
-        Map<String, Integer> map = new HashMap<>();
-        for (Website website : websites) {
-            map.put(website.getUrl(), website.getCount());
-        }
-        return map;
+
+        websites.forEach(website -> websiteStatistics.getStatisticsMap().put(website.getUrl(), website.getCount()));
+
+        return websiteStatistics;
     }
 
-    public Website registerUrl(Website website, String currentActiveUsername) throws Exception {
-        String existingUrl = websiteRepository.findUrlByAccountAndUrl(currentActiveUsername, website.getUrl());
-        if (existingUrl != null && existingUrl.equals(website.getUrl())) {
-            throw new Exception("Request url is already assigned to this user!");
+    public void redirect(String shortUrl, HttpServletResponse httpServletResponse) {
+        WebsiteEntity website = websiteRepository.findWebsiteByShortUrl(shortUrl);
+        if (Objects.isNull(website)) {
+            throw new WebsiteNotFoundException(String.format("No website registered for url '%s'", shortUrl));
         }
-        if (website.getRedirectType() == null) {
-            website.setRedirectType(302);
-        }
-        String shortenedUrl = "http://localhost:8080/" + RandomStringUtility.randomString(RandomNumberUtility.getRandomInteger(5, 11));
-        website.setShortUrl(shortenedUrl);
-        website.setCount(0);
-        website.setAccount(currentActiveUsername);
-        websiteRepository.save(website);
-        return website;
+
+        this.updateWebsiteCount(website);
+        httpServletResponse.setHeader("Location", website.getUrl());
+        httpServletResponse.setStatus(website.getRedirectType());
     }
 
-    public String getWebsiteUrl(String shortUrl) {
-        return websiteRepository.findUrlByShortUrl(shortUrl);
-    }
-
-    public Integer getWebsiteRedirectType(String shortUrl) {
-        return websiteRepository.findRedirectTypeByShortUrl(shortUrl);
-    }
-
-    public void updateWebsiteCount(String shortUrl) throws Exception {
-        Website website = websiteRepository.findWebsiteByShortUrl(shortUrl);
-        if (website == null) {
-            throw new Exception("There is no website registered for given url - " + shortUrl);
+    private void validateRequest(String accountId, Authentication authentication) {
+        Assert.hasLength(accountId, "Account id must not be null or empty");
+        String activeUser = authentication.getName();
+        if (!accountId.equals(activeUser)) {
+            throw new SecurityException("Unauthorized user requesting statistics");
         }
+    }
+
+    private void updateWebsiteCount(WebsiteEntity website) {
         website.setCount(website.getCount() + 1);
-        websiteRepository.updateWebsite(website.getCount(), shortUrl);
+        websiteRepository.updateWebsite(website.getCount(), website.getShortUrl());
     }
 }
