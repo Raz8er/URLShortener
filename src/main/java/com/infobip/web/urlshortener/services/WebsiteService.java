@@ -3,11 +3,13 @@ package com.infobip.web.urlshortener.services;
 import com.infobip.web.urlshortener.domain.dto.RegisteredWebsite;
 import com.infobip.web.urlshortener.domain.dto.Website;
 import com.infobip.web.urlshortener.domain.dto.WebsiteStatistics;
+import com.infobip.web.urlshortener.domain.entity.UserEntity;
 import com.infobip.web.urlshortener.domain.entity.WebsiteEntity;
 import com.infobip.web.urlshortener.exception.InvalidUrlException;
 import com.infobip.web.urlshortener.exception.UrlAlreadyAssignedException;
 import com.infobip.web.urlshortener.exception.WebsiteNotFoundException;
 import com.infobip.web.urlshortener.mapping.WebsiteMapper;
+import com.infobip.web.urlshortener.repositories.UserRepository;
 import com.infobip.web.urlshortener.repositories.WebsiteRepository;
 import com.infobip.web.urlshortener.utilities.CheckUrlUtils;
 import com.infobip.web.urlshortener.utilities.EnvUtil;
@@ -26,6 +28,7 @@ import java.util.Objects;
 @AllArgsConstructor
 public class WebsiteService {
     private final WebsiteRepository websiteRepository;
+    private final UserRepository userRepository;
     private final WebsiteMapper websiteMapper;
     private final EnvUtil envUtil;
 
@@ -34,16 +37,20 @@ public class WebsiteService {
             throw new InvalidUrlException(String.format("Url '%s' is not valid", website.getUrl()));
         }
 
-        String existingUrl = websiteRepository.findUrlByAccountId(accountId);
+        String existingUrl = this.websiteRepository.findUrlByAccountId(accountId);
         if (Objects.nonNull(existingUrl) && existingUrl.equals(website.getUrl())) {
             throw new UrlAlreadyAssignedException(String.format("Url '%s' already assigned to this user", existingUrl));
         }
+
+        UserEntity userEntity = this.userRepository.findByAccountId(accountId);
 
         WebsiteEntity entity = this.websiteMapper.toEntity(website);
         String randomString = RandomStringUtils.randomString(RandomNumberUtils.getRandomInteger(5, 11));
         entity.setShortUrl(randomString);
         entity.setAccountId(accountId);
         WebsiteEntity savedEntity = this.websiteRepository.save(entity);
+
+        userEntity.addWebsite(savedEntity);
 
         return new RegisteredWebsite(envUtil.getServerUrlPrefix() + savedEntity.getShortUrl());
     }
@@ -53,7 +60,7 @@ public class WebsiteService {
 
         validateRequest(accountId, authentication);
 
-        List<WebsiteEntity> websites = websiteRepository.findByAccountId(accountId);
+        List<WebsiteEntity> websites = this.websiteRepository.findByAccountId(accountId);
         if (websites.isEmpty()) {
             throw new WebsiteNotFoundException(String.format("No websites found for user id '%s'", accountId));
         }
@@ -64,7 +71,7 @@ public class WebsiteService {
     }
 
     public void redirect(String shortUrl, HttpServletResponse httpServletResponse) {
-        WebsiteEntity website = websiteRepository.findWebsiteByShortUrl(shortUrl);
+        WebsiteEntity website = this.websiteRepository.findWebsiteByShortUrl(shortUrl);
         if (Objects.isNull(website)) {
             throw new WebsiteNotFoundException(String.format("No website registered for url '%s'", shortUrl));
         }
@@ -84,6 +91,6 @@ public class WebsiteService {
 
     private void updateWebsiteCount(WebsiteEntity website) {
         website.setCount(website.getCount() + 1);
-        websiteRepository.updateWebsite(website.getCount(), website.getShortUrl());
+        this.websiteRepository.updateWebsite(website.getCount(), website.getShortUrl());
     }
 }

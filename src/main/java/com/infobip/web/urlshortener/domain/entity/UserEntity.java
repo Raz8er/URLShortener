@@ -15,16 +15,24 @@ import java.util.Set;
 @Table(name = "user")
 public class UserEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue
     private Long id;
     private String accountId;
     private String hashPassword;
     private String role;
-    @ManyToMany(cascade = CascadeType.ALL)
+    @ManyToMany(cascade = {
+            CascadeType.PERSIST,
+            CascadeType.MERGE
+    })
     @JoinTable(
             name = "user_website",
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "website_id")
     )
     private Set<WebsiteEntity> websites = new HashSet<>();
+
+    public void addWebsite(WebsiteEntity website) {
+        websites.add(website);
+        website.getUsers().add(this);
+    }
 }

@@ -13,11 +13,11 @@ public interface WebsiteRepository extends JpaRepository<WebsiteEntity, Long> {
 
     WebsiteEntity findWebsiteByShortUrl(String url);
 
-    @Query(value = "select w.url from website w where w.account_id = :accountId", nativeQuery = true)
+    @Query("select w.url from WebsiteEntity w where w.accountId = ?1")
     String findUrlByAccountId(String accountId);
 
     @Transactional
     @Modifying
-    @Query(value = "update website w set w.count = :count where w.short_url = :url", nativeQuery = true)
-    void updateWebsite(Integer count, String url);
+    @Query("update WebsiteEntity w set w.count = ?1 where w.shortUrl = ?2")
+    void updateWebsite(Integer count, String shortUrl);
 }
