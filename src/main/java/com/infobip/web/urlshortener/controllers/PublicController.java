@@ -15,6 +15,6 @@ public class PublicController {
 
     @GetMapping("/{shortUrl}")
     public void redirect(@PathVariable String shortUrl, HttpServletResponse httpServletResponse) {
-        this.websiteService.redirect(shortUrl, httpServletResponse);
+        websiteService.redirect(shortUrl, httpServletResponse);
     }
 }

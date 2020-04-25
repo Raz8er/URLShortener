@@ -11,10 +11,8 @@ import com.infobip.web.urlshortener.exception.WebsiteNotFoundException;
 import com.infobip.web.urlshortener.mapping.WebsiteMapper;
 import com.infobip.web.urlshortener.repositories.UserRepository;
 import com.infobip.web.urlshortener.repositories.WebsiteRepository;
-import com.infobip.web.urlshortener.utilities.CheckUrlUtils;
-import com.infobip.web.urlshortener.utilities.EnvUtil;
-import com.infobip.web.urlshortener.utilities.RandomNumberUtils;
-import com.infobip.web.urlshortener.utilities.RandomStringUtils;
+import com.infobip.web.urlshortener.utils.CheckUrlUtility;
+import com.infobip.web.urlshortener.utils.EnvUtil;
 import lombok.AllArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -23,6 +21,9 @@ import org.springframework.util.Assert;
 import javax.servlet.http.HttpServletResponse;
 import java.util.List;
 import java.util.Objects;
+
+import static com.infobip.web.urlshortener.utils.RandomNumberUtilities.getRandomInteger;
+import static com.infobip.web.urlshortener.utils.RandomStringUtilities.randomString;
 
 @Service
 @AllArgsConstructor
@@ -33,22 +34,23 @@ public class WebsiteService {
     private final EnvUtil envUtil;
 
     public RegisteredWebsite registerUrl(Website website, String accountId) {
-        if (!CheckUrlUtils.validateUrl(website.getUrl())) {
+        if (!CheckUrlUtility.validateUrl(website.getUrl())) {
             throw new InvalidUrlException(String.format("Url '%s' is not valid", website.getUrl()));
         }
 
-        String existingUrl = this.websiteRepository.findUrlByAccountId(accountId);
+        String existingUrl = websiteRepository.findUrlByAccountId(accountId);
         if (Objects.nonNull(existingUrl) && existingUrl.equals(website.getUrl())) {
             throw new UrlAlreadyAssignedException(String.format("Url '%s' already assigned to this user", existingUrl));
         }
 
         UserEntity userEntity = this.userRepository.findByAccountId(accountId);
 
-        WebsiteEntity entity = this.websiteMapper.toEntity(website);
-        String randomString = RandomStringUtils.randomString(RandomNumberUtils.getRandomInteger(5, 11));
+        WebsiteEntity entity = websiteMapper.toEntity(website);
+        String randomString = randomString(getRandomInteger(5, 11));
+
         entity.setShortUrl(randomString);
         entity.setAccountId(accountId);
-        WebsiteEntity savedEntity = this.websiteRepository.save(entity);
+        WebsiteEntity savedEntity = websiteRepository.save(entity);
 
         userEntity.addWebsite(savedEntity);
 
@@ -60,7 +62,7 @@ public class WebsiteService {
 
         validateRequest(accountId, authentication);
 
-        List<WebsiteEntity> websites = this.websiteRepository.findByAccountId(accountId);
+        List<WebsiteEntity> websites = websiteRepository.findByAccountId(accountId);
         if (websites.isEmpty()) {
             throw new WebsiteNotFoundException(String.format("No websites found for user id '%s'", accountId));
         }
@@ -71,12 +73,12 @@ public class WebsiteService {
     }
 
     public void redirect(String shortUrl, HttpServletResponse httpServletResponse) {
-        WebsiteEntity website = this.websiteRepository.findWebsiteByShortUrl(shortUrl);
+        WebsiteEntity website = websiteRepository.findWebsiteByShortUrl(shortUrl);
         if (Objects.isNull(website)) {
             throw new WebsiteNotFoundException(String.format("No website registered for url '%s'", shortUrl));
         }
 
-        this.updateWebsiteCount(website);
+        updateWebsiteCount(website);
         httpServletResponse.setHeader("Location", website.getUrl());
         httpServletResponse.setStatus(website.getRedirectType());
     }
@@ -91,6 +93,6 @@ public class WebsiteService {
 
     private void updateWebsiteCount(WebsiteEntity website) {
         website.setCount(website.getCount() + 1);
-        this.websiteRepository.updateWebsite(website.getCount(), website.getShortUrl());
+        websiteRepository.updateWebsite(website.getCount(), website.getShortUrl());
     }
 }

@@ -6,7 +6,7 @@ import com.infobip.web.urlshortener.domain.entity.UserEntity;
 import com.infobip.web.urlshortener.exception.UserAlreadyExistsException;
 import com.infobip.web.urlshortener.mapping.UserMapper;
 import com.infobip.web.urlshortener.repositories.UserRepository;
-import com.infobip.web.urlshortener.utilities.RandomStringUtils;
+import com.infobip.web.urlshortener.utils.RandomStringUtilities;
 import lombok.AllArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -26,13 +26,13 @@ public class UserService {
             throw new UserAlreadyExistsException("User already exists");
         }
 
-        String password = RandomStringUtils.randomString(8);
+        String password = RandomStringUtilities.randomString(8);
 
-        UserEntity userEntity = this.userMapper.toEntity(user);
-        userEntity.setHashPassword(this.passwordEncoder.encode(password));
+        UserEntity userEntity = userMapper.toEntity(user);
+        userEntity.setHashPassword(passwordEncoder.encode(password));
         userEntity.setRole("ADMIN");
         userEntity.setAccountId(user.getAccountId());
-        this.userRepository.save(userEntity);
+        userRepository.save(userEntity);
 
         RegisteredUser registeredUser = new RegisteredUser();
         registeredUser.setSuccess(true);

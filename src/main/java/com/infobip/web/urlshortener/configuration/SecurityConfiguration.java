@@ -1,5 +1,6 @@
 package com.infobip.web.urlshortener.configuration;
 
+import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,13 +15,9 @@ import javax.sql.DataSource;
 
 @Configuration
 @EnableWebSecurity
+@AllArgsConstructor
 public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
-
     private final DataSource dataSource;
-
-    public SecurityConfiguration(DataSource dataSource) {
-        this.dataSource = dataSource;
-    }
 
     @Override
     protected void configure(HttpSecurity httpSecurity) throws Exception {

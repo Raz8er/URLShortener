@@ -20,7 +20,7 @@ public class AdminController {
 
     @PostMapping("/register")
     public RegisteredWebsite registerUrl(@RequestBody @Valid Website website, Authentication authentication) {
-        return this.websiteService.registerUrl(website, authentication.getName());
+        return websiteService.registerUrl(website, authentication.getName());
     }
 
     @GetMapping("/statistic/{accountId}")

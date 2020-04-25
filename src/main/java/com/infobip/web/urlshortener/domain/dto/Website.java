@@ -5,13 +5,11 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.validation.constraints.NotBlank;
-import java.io.Serializable;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class Website implements Serializable {
-    private static final long serialVersionUID = -287019755682673588L;
+public class Website {
     @NotBlank(message = "url is mandatory")
     private String url;
     private Integer redirectType = 302;
